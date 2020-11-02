@@ -1,0 +1,238 @@
+1- 	arena falan eklemistik o is cok uzuyor basit bir saha yapip birakacam.
+
+2-	FPS karakteri ve silahi yükledik simdi ufak bir map yapalim
+
+3-	Gun in icine gun scripti attik.Mantik basit.
+	(Physics.Raycast(cam.transform.position, cam.transform.forward, out hit, range) su kod bize true false gönderiyor, true ise vuracak
+	out hit dedigimiz yer, aslinda su. RaycastHit adinda bir class var hit bunun degiskeni biz belirledik adi. kamerayi da fps camerasi sectik unutma. main cami secme
+	RaycastHit in vurmasi icin nesnenin collideri olmasi lazim.
+
+4-	Enemy olustrduk ona da script attik 5 mermi alinca ölecek sekilde ayarladik.
+
+5-	Kodun bu kismi bence önemli: 
+	void Shoot()
+    {
+        muzzle.Play();
+        RaycastHit hit;
+        if (Physics.Raycast(cam.transform.position, cam.transform.forward, out hit, range))
+        {
+            Debug.Log(hit.transform.name);
+
+            enemy enemy = hit.transform.GetComponent<enemy>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(damage);
+            }
+            GameObject inst = Instantiate(impact, hit.point, Quaternion.LookRotation(hit.normal));	hit.point RaycastHit in bir propertysi
+            Destroy(inst, 0.5f);									ray in ilk degdigi noktanin konumunu veriyo
+										Quaternion.Lookrottaion da bize bir nokta veriyor iste
+        }
+
+6-	Particle systeme isik ekledi bir de ama ben pek anlamadim onun disinda raycast olayini anlamis olduk. 	
+
+7-	Simdi de select ve deselect baska bir eleman yapmis. Paketi indirdik. Mantik 3 asagi 5 yukari ayni.Sahayi kurduk. Secili nesneler highlight olacak
+
+	https://www.youtube.com/watch?v=QDldZWvNK_E&t=537s&ab_channel=InfallibleCode
+
+8-	var ray = Camera.main.ScreenPointToRay(Input.mousePosition); ScreenManagerda update e sunu yazdik. Cameranin bir metodu. Input.Mouseposition ddigi mouseun nerde oldugu
+	FPS kamerada mouse hep ortada zetn o yuzden tam orta noktaya bir ray atiyoruz.Yalniz burda bir hata var mouse ekranin tam ortasinda durmadigi icin sagli sagli aliyordu
+	ben de önceki tutrial gibi cam pozisyonundan aldim rayi.
+
+9-	RaycastHit hit;				su kodla baktgmiz nesnenin materyalini simdi degistirmis olduk. Ama öyle kaliyor.
+        if (Physics.Raycast(ray,out hit))
+        {
+            var selection = hit.transform;
+            var selectionRenderer = selection.GetComponent<Renderer>();
+            if (selectionRenderer != null)
+            {
+                selectionRenderer.material = highlight;
+            }
+        }
+
+10-	burda cok denedim kendi yöntemimi yapmayi ama aklima gelen iyi yöntem, kutulara birer script atip kendi materyallaerini kendilerinin kullanmasi oldu
+	burda biz aslinda eventmanagerea bir default material koyduk ve o aslinda renkleri kontrol ediyor.
+
+11-	Olay burdan sonra cok karisti ama elemanin yazdigi kodlar cok önemli SOLID diye birseyden bahsediyor. Nedir SOLiD
+
+
+	"SOLID is an acronym that stands for five basic principles of Object-Oriented Programming and design to fix STUPID code:
+
+	Single Responsibility Principle
+	Open/Closed Principle
+	Liskov Substitution Principle
+	Interface Segregation Principle
+	Dependency Inversion Principle"
+	
+	bunlarin herbiri kendi icinde güzel konu ama bu dönemki derslerde görecegiz zaten.
+
+12-	EventManager SingleResponsibility geregi sadece bir fonksiyon icersin ietsedik o da Update. Update de Raycast it i tanimladik ve cam potisyonundan ileri dogru gönderdik
+	FPS kamerasi oldugu icin merkezi hit e gele obje selection olarak belirledik. _selectionda da bunu tuttuk.
+
+13-	Simdi isin enteresan tarafi, _selection su an bizim obje(selection) ama kamerayi cevirince artik selection null . _selection ise hala eski obje. Bu sayede benim
+	yapmaya calistigim seyi yapti adam. 
+	burda ;
+	private ISelectionResponse _selectionResponse; diye bir degisken tanimladik ISelectRespponse bir interface. Aha ne bu!? Bu bir class interfacei. Bunu ;
+
+	internal interface ISelectionResponse		su kadar kodla yazmak mümkün.Sonra bunu inherit ediyorsun ki, icindeki fonksyionlari kullanabilöesin. 
+	{						bu cok kullanisli bir FOP disiplini. Farkli farkli metod yazarak ve classlar olusturarak 2 ve 3. adimlari da yapmistik. b
+   	 void OnSelect(Transform selection);		unla birlikte 4 oldu. bunu scenemanagerda selectionResponse diye bir degisken oalrak tanimladik ve kullandik
+    	void OnDeselect(Transform selection);
+	}
+	
+14-	Ama su an hala fonksiyonlara ulasamadik. Sabahtan beri millet birbirinden alip duruyor. Haa bu arada, Scriptte Highlightresponse da var ve bu da hem MonoBehavior
+	hem de biim bu interfaceden inherit ediyor. Bunda da biz highight isini yapmistik. Bu da internal class olarak tanimli. public yapsak olur mu acaba? denedim aslinda
+	oldu gibi ufak bir hatasi avrdi ama detayina bakmadim. (seelction = null yapmayi unuttgm bir yer varmis,*ekleme)
+
+15-	en son bir asset indirdik outline diye. Bunu bir objeye atiyorsun ve outline olusturuo. bunu default kapattik biz. outline. width =0 yaparak. Simdi isin obje tabanli tarafi
+	nizim scenemanagerda OutlineSelectionResponse isminde bir scriptimiz var. bu ne yapiyor? bu ISelectResponsun interfaceini kullaniyor yani ben ISelectResponsun a degisken
+	tanimlayinca bunu sanki bu OutlineSelectionResponse  classa tanimlamis gibi oluyrm. 
+	
+	public void OnSelect(Transform selection)		kodlari da aha bu iste. buna gelen selection taaa scenemanagerda cikan Raycastin hit.transform u
+    {								outline adindaki degisken ise bizim sahendeki nesnelere koydgmuz scripti atadik. onu da assetten indirmistik
+        var outline = selection.GetComponent<Outline>();	isin guzel tarafi bu interface e yeni fonksion eklersen, bunu kullanan classlarda bu fonksiyonlari kullanablrsn
+        if(outline != null) outline.OutlineWidth = 10;		Böylelikle FOP icin gerekli olan SOLID kosullarini saglayan bir kod yazmis olduk
+    }
+
+16-	Deselectte de widhti 0 yapiyoruz. 
+
+17-	Kodun devaminda bir seviye daha derinleserek iyice SOLID hale getiriyoruz. Simdilik pek anlamiyorum ama SOLID kismina bakmam gerek sonra.Neyse.
+
+18-	Kodun su anki halindeki sikinti su. Update metodunda hem ray olusturuoz hem de ifle tag falan karsilastirip metod uyguluoz. Parca parca gidelim.
+
+	https://www.youtube.com/watch?v=Fs8jy7DHDyc&ab_channel=InfallibleCode
+
+19-	Önce Update icindeki --
+	
+		void Update()					****bu kisma bakalim. Ray olusturdgmuz yer if in icinde onu disari cikaralim.(a)
+    {
+        if (_selection != null)
+        {
+            _selectionResponse.OnDeselect(_selection);
+            
+        }
+        
+        RaycastHit hit;
+        if (Physics.Raycast(cam.transform.position, cam.transform.forward, out hit, Mathf.Infinity) && hit.transform.CompareTag("Selectable"))
+        {
+            
+            var selection = hit.transform;
+            _selection = selection;
+            
+        }
+        if (_selection != null)
+        {
+            _selectionResponse.OnSelect(_selection);
+            
+        }
+    }
+
+	a_ 	public Ray CreateRay()
+   	 	{
+        	return new Ray(cam.transform.position,cam.transform.forward);
+    		}
+
+	b_	ardindan bir class olusturup bu fonksiyonu icine attik. private bir instance tanimladik(RayCastfromCam)CreateRay simdi bu classin fonksyionu olduguna göre
+		Update deki var ray = createRay() i ------ var ray = _rayFromCam.CreateRay(); seklinde degistrdik.
+	
+	c_	bununla da yetinmedik tabi. her yni class bir interface kullanacak SOLIDde. Yok öyle yagma aq.RayCastFromCam de IRayCastCam adinda
+		bir interfacei kullansin dedik
+		public interface IRayCastCam		burda önemli olan aq.RayCastFromCam artik bunu da IRayCastCam inherit etmeli.
+		{					ardindan da RayCastFromCam private instance i vardi, onu IRayCastCam un instance i yaptik.
+   		 public Ray CreateRay();		yoksa interface i nasil kullancaz. (Objenin icine interface degil class atiliyor. o da metodlarini interface den aliyor.)
+		}	
+
+	d_	eski _selection simdi _currentselection oldu bunun amaci Rayi olusturup atma isini baska metoda götürebilmekti. Sonrasinda orda Check(Ray ray) metodu olstrdlu
+		Is ama simdi karisiyor.
+	
+	e-	if te iken iki durum var secili ve secili olmayan. secili olmadigi zamaki degisken _selection secili _currentselection oldu. yeni bir fonksiyon demek yeni
+		bir class demek 
+		
+
+public class RayCastBasedTagSelecter : MonoBehaviour	* cikarip bunu yazdik. bunu da yukarda _selecter instance ile tanimladik. Check(ray) burda olduguna göre 
+{							  _selecter.Check(ray ) dememiz gerekiyor update de artik. isin bir tarafi da _currentselection icin bir getter yazdik.(f)
+    public Transform _selection;			  
+    public void Check(Ray ray)
+    {
+        this._selection = null;
+
+        if (Physics.Raycast(ray, out var hit, Mathf.Infinity) && hit.transform.CompareTag("Selectable"))
+        {
+            var selection = hit.transform;
+            this._selection = selection;
+
+        }
+    }
+}
+	f_	_currentselection= GetSelection();      public Transform GetSelection()			_selecter rayi kontrol ederken belirliyo selection u
+    							{
+     							   return  _selecter._selection;
+   							 }
+
+	g_ yarin bakacam. yarin oldu öglen oldu hatta aq. devam. dünkü hatamiz su imis, vidusl studio da bir metodu extract deyince projeye atiyor ama visual studioda acmiyor
+	ben iki defa deneyince metodlarin asil sahibi kum belli olmadigi icin karisiklik olmus. 
+
+	h_	Velhasil scenemanagerda kalan her class ve interfacei ayri bir cs dosyasina iteledik ve selectionanager su hale geldi.
+
+	public class SelectionManager : MonoBehaviour			*** Kod acayip güzel sadelesti ve okunabilir oldu. Interfaceler classlarin bir iskeleti 
+	{									gibi dusunebilirz.
+ 	   private ISelectionResponse _selectionResponse;			burda unutmamak gerek ben ray olusutrrken nesneye yerlestrdgm bir kamerayi kullandim bunu da
+ 	   private IRayCastCam _rayFromCam;					public olarak atamak gerek. o unutlursa ray olusmaz.
+  	  private IRayCastBasedTagSelecter _selecter;				Ray olusturan interface IRayCastCam class : RayCastfromCam metod da public Ray CreateRay()
+									
+  	  private Transform _currentselection;
+   
+   	 private void Awake()
+   	 {
+        _selectionResponse = GetComponent<ISelectionResponse>();
+        _rayFromCam = GetComponent<IRayCastCam>();
+        _selecter = GetComponent<IRayCastBasedTagSelecter>();
+    
+   	 }
+
+    	void Update()
+    	{
+     	   if (_currentselection != null) _selectionResponse.OnDeselect(_currentselection);
+        
+     	   _selecter.Check(_rayFromCam.CreateRay());
+     	   _currentselection= _selecter.GetSelection();
+
+     	   if (_currentselection != null) _selectionResponse.OnSelect(_currentselection);
+       
+   	 }
+
+	}
+
+	i_	 deneyelim....oldu vay lan. SOLID calismasi sanirim bu kadr. bundan sonra birkac sey daha var onlara bakalim simdi.
+
+20_ 	https://www.youtube.com/watch?v=cxJnvEpwQHc&t=1s&ab_channel=InfallibleCode
+
+	raycast le ilgili son olarak belki konumuz DotProduct, yani vektörlerin nokta carpimi. Iki vektör birbirine paralelse carpimi 1 dikse 0 oluyor sonuc.
+	Ne isimize yarar? Ben bir nesneye direk bakmak zorunda degilim onu highlight etmek icin olay bu aslinda.	
+	elemanin yaptigi SOLID  kod zaten her türlü uygulamaya acik. baslayalim.
+
+21_	Öncelikle yeni bir class olusturuoz ve bu IRaycastBasedTagSelecter dan inherit edecek. Bu arada Visual STudioda da belli basli seyleri kullanmayi ögrenmis olduk heee
+	Neyse, interfacein icindeki fonksiyolari kullanmak durumundayiz her türlu. Ustune istersen ekeleyebiliosn ama onlari kesin kullancan. Bizim su anki kullandgmiz class RayCastBasedTagSelector
+	bu yeni class yüzünden selectionmanagerdan remove edilecek. Öyle yani bu isler.
+	
+	yeni class ResponsiveSelector ve bir adet Transformla calisiyorut o da baktgmz nesne. Ben mesela simdi br objeye baktigimda onun transformunu geri dönmem gerek.
+	icindeki checkray metodu da eger bir objeye degisyorsa onun transformunu dönüyor bize eger yoksa null dönecek.	
+	
+22_	Iki vector3 olusturmamiz lazim biri bizden cikan ray basit bu. ikincisi nesnenin bize bakan kismi. Bunu basarabilmek icin bakilacak her nesneyi referans almamiz gerek
+	bunu da bir listeyle yapabilirz ancak. Listeyi Transform degil Selectable adli yeni bir sinifla tanimlayacaz.
+	
+23_	Burda biraz koddan bahsedelim. Check metodu burda Vector3.Dot metodunu kullanarak bizim bakma yönümüz ve nesnenin biz bakisi arasindaki aciyi hesapliyor.
+	
+	for döngüsü...
+	var vector1 = ray.direction;							***kod bu.ray.origin ve ray.direction önemli Vector3 döndüren static metodlar.
+            var vector2 = selectables[i].transform.position- ray.origin;		Vector3.Dot normalized olmali bu da önemli
+
+            var lookPercentage = Vector3.Dot(vector1.normalized, vector2.normalized);	
+
+24_	karsimiza cikan bir hata = liste olusturmak istiosan  using System.Collections.Generic;  su herzaman olacak.
+	su an hazir. ama her objenin ustunde degil maalesef textler onun da yoluna bakmam lazim.
+
+25_ 	En son bir threshold degeri belirlekdik 0.97 bundan yukari olunca aktif oluo outline.
+
+26_	Burda güzellestirmeler yapilabilecek olsa da; Raycast olayini burda bitiiyorum aq yeter beynim gitti.
+	
+	
